@@ -2,8 +2,8 @@ const logger = require("../../utilities/logger");
 const {
   handleSuccessResponse,
   handleErrorResponse,
-} = require("../../utilities/responseHandlers");
-const responses = require("../../responses");
+} = require("../../utilities/controllerUtilities");
+const responses = require("../../config/serverResponses");
 const authenticationService = require("./authenticationService");
 
 async function refreshToken(req, res) {
@@ -13,36 +13,34 @@ async function refreshToken(req, res) {
   if (!refreshToken) {
     return handleErrorResponse(
       res,
-      401,
-      responses.authenticationMessages.noToken[language]
+      responses.statusCodes.unauthorized,
+      responses.errors.authentication.missingToken[language]
     );
   }
+
   try {
-    const decoded = authenticationService.decodeJWT(refreshToken);
-    const storedToken = await authenticationService.getStoredToken(
-      refreshToken
-    );
+    const storedToken = await authenticationService.findStoredToken({
+      token: refreshToken,
+    });
     if (!storedToken) {
       return handleErrorResponse(
         res,
-        401,
-        responses.authenticationMessages.invalidToken[language]
+        responses.statusCodes.unauthorized,
+        responses.errors.authentication.invalidToken[language]
       );
     }
-    if (storedToken.expires < Date.now()) {
-      return handleErrorResponse(
-        res,
-        401,
-        responses.authenticationMessages.tokenExpired[language]
-      );
-    }
-    const accessToken = authenticationService.getJWT(decoded);
-    return handleSuccessResponse(res, 200, { token: accessToken });
+
+    const accessToken = authenticationService.getLoginJWTUsingRefreshJWT({
+      refreshToken,
+    });
+    return handleSuccessResponse(res, responses.statusCodes.ok, {
+      token: accessToken,
+    });
   } catch (error) {
     logger.error(error);
     return handleErrorResponse(
       res,
-      500,
+      responses.statusCodes.internalServerError,
       responses.commonMessages.serverError[language]
     );
   }

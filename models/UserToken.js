@@ -8,9 +8,10 @@ module.exports = (sequelize, DataTypes) => {
         autoIncrement: true,
         allowNull: false,
       },
-      user_id: {
+      userId: {
         type: DataTypes.INTEGER,
         allowNull: false,
+        field: "user_id",
       },
       type: {
         type: DataTypes.ENUM(
@@ -25,9 +26,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
       },
-      expires_at: {
+      expiresAt: {
         type: DataTypes.DATE,
         allowNull: false,
+        field: "expires_at",
       },
       revoked: {
         type: DataTypes.BOOLEAN,
@@ -41,7 +43,7 @@ module.exports = (sequelize, DataTypes) => {
   );
   UserToken.associate = (models) => {
     UserToken.belongsTo(models.User, {
-      foreignKey: "user_id",
+      foreignKey: "userId",
       allowNull: false,
     });
   };

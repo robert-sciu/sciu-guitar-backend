@@ -1,54 +1,43 @@
 const logger = require("../../utilities/logger");
-const {
-  checkMissingUpdateData,
-  unchangedDataToUndefined,
-} = require("../../utilities/controllerUtilities");
+
 const userService = require("./userService");
-const responses = require("../../responses");
+const responses = require("../../config/serverResponses");
 const {
   handleSuccessResponse,
   handleErrorResponse,
-} = require("../../utilities/responseHandlers");
+} = require("../../utilities/controllerUtilities");
+const commonService = require("../services/commonService");
 
 async function updateUser(req, res) {
   const language = req.language;
-  const user_id = req.user.id;
+  const isAdmin = commonService.userIsAdmin({ user: req.user });
 
-  const updateData = userService.destructureUpdateUserDataUser(req.body);
+  const userId = isAdmin ? req.id : req.user.id;
+
+  const updateData = userService.destructureUpdateUserData({
+    data: req.body,
+    isAdmin,
+  });
 
   try {
-    const user = await userService.findUserById(user_id);
-    const updateDataNoDuplicates = unchangedDataToUndefined(user, updateData);
-    if (checkMissingUpdateData(updateDataNoDuplicates)) {
-      return handleErrorResponse(
-        res,
-        400,
-        responses.commonMessages.noUpdateData[language]
-      );
-    }
-    const updatedRecordCount = await userService.updateUser(
-      user_id,
-      updateDataNoDuplicates
-    );
-    if (updatedRecordCount === 0) {
-      return handleErrorResponse(
-        res,
-        409,
-        responses.commonMessages.updateError[language]
-      );
-    }
-    userService.clearUserCache(user_id);
+    await userService.updateUser({
+      userId,
+      data: updateData,
+    });
+
+    userService.clearUserCache({ userId });
+
     return handleSuccessResponse(
       res,
-      200,
-      responses.commonMessages.updateSuccess[language]
+      responses.statusCodes.ok,
+      responses.messages.updateSuccess[language]
     );
   } catch (error) {
     logger.error(error);
     return handleErrorResponse(
       res,
-      500,
-      responses.commonMessages.serverError[language]
+      responses.statusCodes.internalServerError,
+      responses.errors.serverError[language]
     );
   }
 }

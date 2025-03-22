@@ -1,86 +1,93 @@
-const { sequelize } = require("../../models");
 const {
   handleErrorResponse,
   handleSuccessResponse,
-} = require("../../utilities/responseHandlers");
+} = require("../../utilities/controllerUtilities");
 const logger = require("../../utilities/logger");
 const userService = require("./userService");
-const responses = require("../../responses");
+const responses = require("../../config/serverResponses");
 
 async function createUser(req, res) {
   const language = req.language;
-  const { password, ...data } = userService.destructureCreateUserData(req.body);
 
-  const transaction = await sequelize.transaction();
+  const userData = userService.destructureCreateUserData({
+    data: req.body,
+  });
+
+  // Check if admin user creation is allowed if role is admin ////////////////////////////////////////////////////////
+
+  const adminUserCreationEnabled = userService.checkIfAdminCreationIsAllowed({
+    userData,
+  });
+
+  if (userData.role === "admin" && !adminUserCreationEnabled) {
+    return handleErrorResponse(
+      res,
+      responses.statusCodes.forbidden,
+      responses.errors.user.adminCreationNotAllowed[language]
+    );
+  }
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  const transaction = await userService.getTransaction();
 
   try {
-    if (await userService.emailIsInDatabase(data.email, transaction)) {
+    // Check if user with the same email already exists //////////////////////////////////////////////////////////////
+
+    if (
+      await userService.findUserByEmail({ email: userData.email, transaction })
+    ) {
       await transaction.rollback();
       return handleErrorResponse(
         res,
-        409,
-        responses.usersMessages.mailInUse[language]
+        responses.statusCodes.conflict,
+        responses.errors.user.mailAlreadyExists[language]
       );
     }
-    const hashedPassword = await userService.hashPassword(password);
-    const userData = {
-      ...data,
-      password: hashedPassword,
-      role: "user",
-      difficulty_clearance_level: 1,
-      is_active: false,
-      is_verified: false,
-    };
 
-    const newUser = await userService.createUser(userData, transaction);
-    const user_id = newUser.id;
+    // Create user //////////////////////////////////////////////////////////////////////////////////////////////////
 
-    const verificationToken = userService.generateVerificationToken(user_id);
+    const newUser = await userService.createUser({
+      data: userData,
+      isAdmin: adminUserCreationEnabled,
+      transaction,
+    });
 
-    await userService.createPlanInfo(user_id, transaction);
-    await userService.saveVerificationToken(
-      user_id,
+    // Create plan info ////////////////////////////////////////////////////////////////////////////////////////////
+
+    await userService.createPlanInfo({ userId: newUser.id, transaction });
+
+    // create and save verification token to db/////////////////////////////////////////////////////////////////////
+
+    const verificationToken =
+      await userService.generateAndSaveUserVerificationToken({
+        userId: newUser.id,
+        transaction,
+      });
+
+    // send email to user with verification link and email to admin about new user /////////////////////////////////
+
+    await userService.sendEmailsConcerningNewUser({
+      userEmail: newUser.email,
+      username: newUser.username,
       verificationToken,
-      transaction
-    );
-
-    const verificationLink = `${
-      process.env.Node_ENV === "production"
-        ? process.env.PRODUCTION_ORIGIN
-        : process.env.DEV_ORIGIN
-    }/verifyUser?token=${verificationToken}`;
-
-    const mailError = await userService.sendVerificationEmail(
-      data.email,
-      verificationLink,
-      language
-    );
-    if (mailError) {
-      await transaction.rollback();
-      return handleErrorResponse(
-        res,
-        500,
-        responses.commonMessages.serverError[language]
-      );
-    }
-    await userService.sendMailToMyselfAboutNewUser(
-      newUser.email,
-      newUser.username
-    );
+      language,
+    });
 
     await transaction.commit();
+
     return handleSuccessResponse(
       res,
-      200,
-      responses.usersMessages.userCreated[language]
+      responses.statusCodes.created,
+      responses.messages.user.userCreated[language]
     );
   } catch (error) {
     await transaction.rollback();
     logger.error(error);
     return handleErrorResponse(
       res,
-      500,
-      responses.commonMessages.serverError[language]
+      responses.statusCodes.internalServerError,
+      responses.errors.serverError[language]
     );
   }
 }

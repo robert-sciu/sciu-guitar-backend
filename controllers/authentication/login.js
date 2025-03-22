@@ -1,56 +1,74 @@
 const {
   handleErrorResponse,
   handleSuccessResponse,
-} = require("../../utilities/responseHandlers");
+} = require("../../utilities/controllerUtilities");
 const logger = require("../../utilities/logger");
 const authenticationService = require("./authenticationService");
-const responses = require("../../responses");
+const responses = require("../../config/serverResponses");
 
 async function login(req, res) {
   const language = req.language;
-  const { email, password } = req.body;
+  const loginData = authenticationService.destrucureLoginCredentials({
+    data: req.body,
+  });
   try {
-    const user = await authenticationService.getUserByEmail(email);
+    // Check if user exists and is verified and if not return error message //////////////
+
+    const user = await authenticationService.findUserByEmail({
+      email: loginData.email,
+    });
     if (!user) {
       return handleErrorResponse(
         res,
-        404,
-        responses.authenticationMessages.userNotFound[language]
+        responses.statusCodes.notFound,
+        responses.errors.user.userNotFound[language]
       );
     }
-    if (!user.is_verified) {
+    if (!user.isVerified) {
       return handleErrorResponse(
         res,
-        400,
-        responses.usersMessages.verifyFirst[language]
+        responses.statusCodes.unauthorized,
+        responses.errors.user.userNotVerified[language]
       );
     }
+    //////////////////////////////////////////////////////////////////////////////////////
+
+    // Check if password is correct and if not return error message ////////////////////
+    // if password is correct generate jwt and attach cookies //////////////////////////
+
     if (
-      !(await authenticationService.verifyPassword(user.password, password))
+      !(await authenticationService.verifyPassword({
+        hash: user.password,
+        password: loginData.password,
+      }))
     ) {
       return handleErrorResponse(
         res,
-        401,
-        responses.authenticationMessages.wrongPasswordOrEmail[language]
+        responses.statusCodes.unauthorized,
+        responses.errors.authentication.wrongCredentials[language]
       );
     }
-    const accessToken = authenticationService.getJWT(user);
-    const refreshToken = authenticationService.getRefreshJWT(user);
-    const isVerified = user.is_verified;
+    const accessToken = authenticationService.getLoginJWT({ user });
+    const refreshToken = authenticationService.getRefreshJWT({ user });
 
-    await authenticationService.saveRefreshToken(refreshToken, user.id);
-    authenticationService.attachCookies(res, refreshToken);
+    await authenticationService.saveRefreshToken({
+      refreshToken,
+      userId: user.id,
+    });
 
-    return handleSuccessResponse(res, 200, {
+    authenticationService.attachCookies({ res, refreshToken });
+
+    ///////////////////////////////////////////////////////////////////////////////////
+
+    return handleSuccessResponse(res, responses.statusCodes.ok, {
       token: accessToken,
-      isVerified,
     });
   } catch (error) {
     logger.error(error);
     return handleErrorResponse(
       res,
-      500,
-      responses.commonMessages.serverError[language]
+      responses.statusCodes.internalServerError,
+      responses.errors.serverError[language]
     );
   }
 }

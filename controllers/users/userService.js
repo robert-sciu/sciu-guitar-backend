@@ -1,113 +1,108 @@
 const {
-  destructureData,
   findRecordByPk,
   updateRecord,
   findRecordByValue,
   findAllRecords,
   deleteRecord,
   createRecord,
-} = require("../../utilities/controllerUtilities");
+} = require("../../utilities/sequelizeUtilities");
 
 const { sendMail } = require("../../utilities/mailer");
 const { userCache } = require("../../utilities/nodeCache");
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const {
-  generateVerificationToken,
+  generateUserVerificationToken,
   verifyVerificationToken,
   generateUserActivationToken,
   verifyUserActivationToken,
-  getTokenExpiryDaysVer,
 } = require("../../utilities/tokenUtilities");
 const mailMessages = require("../../config/mailsData");
+const { destructureData } = require("../../utilities/serviceUtilities");
 
 const tokensExpiry = require("../../config/config")[process.env.NODE_ENV]
-  .allowList.tokensExpiry;
+  .tokensExpiration;
 
 const { User, PlanInfo, UserToken, LessonReservation, UserTask } =
   require("../../models").sequelize.models;
 
+const { sequelize } = require("../../models");
+
 class UserService {
   /////////////////////////////////////////////////////////////////////////////////
-  // Common functions /////////////////////////////////////////////////////////////
+  // utilities /////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////////
 
-  clearUserCache(user_id) {
-    userCache.del(user_id);
+  clearUserCache({ userId }) {
+    userCache.del(userId);
+  }
+
+  checkIfAdminCreationIsAllowed({ userData }) {
+    if (userData.role !== "admin") return false;
+    const isAdminCreationEnabled =
+      process.env.CREATE_ADMIN_USER_ENABLED === "true";
+    if (!isAdminCreationEnabled) return false;
+    if (userData.token !== process.env.CREATE_ADMIN_TOKEN) return false;
+    return true;
   }
 
   /////////////////////////////////////////////////////////////////////////////////
   //crypto ////////////////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////////
+
   generateResetToken() {
     const resetToken = crypto.randomInt(1000000, 9999999);
     const resetTokenExpiry = Date.now() + 60 * 15 * 1000;
     return { resetToken, resetTokenExpiry };
   }
-  /**
-   * Hashes a given password using bcrypt
-   * @param {string} password
-   * @returns {Promise<string>} The hashed password
-   */
+
   async hashPassword(password) {
     return await bcrypt.hash(password, 10);
   }
 
   /////////////////////////////////////////////////////////////////////////////////
-  //tokens ////////////////////////////////////////////////////////////////////////
+  // user tokens //////////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////////
 
-  generateVerificationToken(userId) {
-    return generateVerificationToken(
-      userId,
-      `${tokensExpiry.inDays.userVerificationToken}d`
-    );
-  }
-
-  generateActivationToken(userId) {
-    return generateUserActivationToken(
-      userId,
-      `${tokensExpiry.inDays.userActivationToken}d`
-    );
-  }
-
-  async saveVerificationToken(userId, verificationToken, transaction) {
-    return await createRecord(
-      UserToken,
-      {
-        token: verificationToken,
-        user_id: userId,
-        type: "verification",
-        expires_at: getTokenExpiryDaysVer(
-          tokensExpiry.inDays.userVerificationToken
-        ),
-      },
-      transaction
-    );
-  }
-  async saveActivationToken(userId, activationToken) {
-    return await createRecord(UserToken, {
+  async generateAndSaveUserActivationToken({ userId }) {
+    const activationToken = generateUserActivationToken(userId);
+    await createRecord(UserToken, {
       token: activationToken,
-      user_id: userId,
+      userId: userId,
       type: "activation",
-      expires_at: getTokenExpiryDaysVer(
-        tokensExpiry.inDays.userActivationToken
-      ),
+      expiresAt: Date.now() + tokensExpiry.userActivationTokenMs,
     });
+    return activationToken;
   }
-  verifyVerificationToken(token) {
+
+  async generateAndSaveUserVerificationToken({ userId, transaction }) {
+    const verificationToken = generateUserVerificationToken(userId);
+    await createRecord({
+      model: UserToken,
+      data: {
+        token: verificationToken,
+        userId: userId,
+        type: "verification",
+        expiresAt: Date.now() + tokensExpiry.userVerificationTokenMs,
+      },
+      transaction,
+    });
+    return verificationToken;
+  }
+
+  verifyUserVerificationToken({ token }) {
     return verifyVerificationToken(token);
   }
 
-  verifyActivationToken(token) {
+  verifyUserActivationToken({ token }) {
     return verifyUserActivationToken(token);
   }
 
-  async compareVerificationTokens(token, userId) {
+  async isVerificationTokenValid({ token, userId }) {
     const verificationToken = await UserToken.findOne({
       where: {
         token,
-        user_id: userId,
+        userId: userId,
         type: "verification",
       },
     });
@@ -117,11 +112,11 @@ class UserService {
     return true;
   }
 
-  async compareActivationTokens(token, userId) {
+  async isActivationTokenValid(token, userId) {
     const activationToken = await UserToken.findOne({
       where: {
         token,
-        user_id: userId,
+        userId: userId,
         type: "activation",
       },
     });
@@ -135,33 +130,47 @@ class UserService {
   // Database functions ///////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////////
 
-  /**
-   * Creates a new user and returns the newly created user
-   * @param {object} data The data to create the user with: { username, email, password, role }
-   * @param {Sequelize.Transaction} transaction The transaction to create the user in
-   * @returns {Promise<User>}
-   */
-  async createUser(data, transaction) {
-    return await createRecord(User, data, transaction);
+  async getTransaction() {
+    return await sequelize.transaction();
   }
 
-  async updateUserVerificationStatus(user_id) {
-    return await updateRecord(User, { is_verified: true }, user_id);
+  async createUser({ data, isAdmin, transaction }) {
+    const userObject = {
+      ...data,
+      password: await this.hashPassword(data.password),
+      role: isAdmin ? "admin" : "user",
+      difficultyClearanceLevel: isAdmin ? 999 : 1,
+      isActive: isAdmin ? true : false,
+      isVerified: isAdmin ? true : false,
+    };
+    return await createRecord({ model: User, data: userObject, transaction });
   }
 
-  async updateUserActivationStatus(user_id, status) {
-    return await updateRecord(User, { is_active: status }, user_id);
-  }
-
-  async deleteUserToken(token, user_id, type) {
-    return await UserToken.destroy({
-      where: { token: token, user_id: user_id, type: type },
+  async updateUserVerificationStatus({ userId }) {
+    return await updateRecord({
+      model: User,
+      updateData: { isVerified: true },
+      id: userId,
     });
   }
 
-  async deleteAllTokensForUser(user_id, transaction) {
+  async updateUserActivationStatus({ userId }) {
+    return await updateRecord({
+      model: User,
+      updateData: { isActive: true },
+      id: userId,
+    });
+  }
+
+  async deleteUserToken({ token, userId, type }) {
+    return await UserToken.destroy({
+      where: { token, userId, type },
+    });
+  }
+
+  async deleteAllTokensForUser({ userId, transaction }) {
     await UserToken.destroy({
-      where: { user_id: user_id },
+      where: { userId },
       transaction,
     });
   }
@@ -180,22 +189,14 @@ class UserService {
     });
   }
 
-  async createPlanInfo(user_id, transaction) {
-    return await createRecord(PlanInfo, { user_id }, transaction);
+  async createPlanInfo({ userId, transaction }) {
+    return await createRecord({
+      model: PlanInfo,
+      data: { userId },
+      transaction,
+    });
   }
 
-  /**
-   * Finds a user by email address
-   * @param {string} email The email address of the user to find
-   * @returns {Promise<User>} The user with the given email, or null if none is found
-   */
-
-  /**
-   * Finds a user by their email address and returns the user's reset_password_token and id
-   * @param {string} email The email address of the user to find
-   * @returns {Promise<{ resetPasswordToken: string, userId: number }|null>}
-   * The user with the given email, or null if none is found
-   */
   async getResetPasswordToken(email) {
     const user = await findRecordByValue(User, { email });
     if (!user) {
@@ -203,25 +204,18 @@ class UserService {
     }
     return { resetPasswordToken: user.reset_password_token, userId: user.id };
   }
-  /**
-   * Finds all users in the database
-   * @returns {Promise<Array<User>>} An array of all users in the database, or null if none are found
-   */
+
   async getAllUsers() {
-    const users = await findAllRecords(User);
+    const users = await findAllRecords({ model: User });
     if (!users) {
       return null;
     }
-    const sanitizedUsers = users.map((user) => this.sanitizeUserData(user));
+    const sanitizedUsers = users.map((user) =>
+      this.sanitizeUserData({ data: user })
+    );
     return sanitizedUsers;
   }
-  /**
-   * Updates the given user's reset_password_token and reset_password_token_expiry values
-   * @param {number} user_id The id of the user to update
-   * @param {string} resetToken The new value for reset_password_token
-   * @param {Date} resetTokenExpiry The new value for reset_password_token_expiry
-   * @returns {Promise<number>} The number of affected rows (should be 1)
-   */
+
   async saveResetPasswordToken(user_id, resetToken, resetTokenExpiry) {
     return await updateRecord(
       User,
@@ -233,43 +227,30 @@ class UserService {
     );
   }
 
-  /**
-   * Finds a user by id and returns the sanitized user data
-   * @param {number} user_id The id of the user to find
-   * @param {Sequelize.Transaction} [transaction] The transaction to use
-   * @returns {Promise<User|undefined>} The sanitized user data, or undefined if no user was found
-   */
-  async findUserById(user_id, transaction) {
-    const user = await findRecordByPk(User, user_id, transaction);
+  async findUserById({ userId, transaction }) {
+    const user = await findRecordByPk({ model: User, id: userId, transaction });
     return this.sanitizeUserData(user);
   }
-  async findUserByEmail(email) {
-    const user = await findRecordByValue(User, { email });
-    return this.sanitizeUserData(user);
+
+  async findUserByEmail({ email, transaction }) {
+    const user = await findRecordByValue({
+      model: User,
+      value: { email },
+      transaction,
+    });
+    if (!user) {
+      return null;
+    }
+    return this.sanitizeUserData({ data: user });
   }
-  /**
-   * Deletes a user by user id
-   * @param {number} user_id The id of the user to delete
-   * @param {Sequelize.Transaction} [transaction] The transaction to use
-   * @returns {Promise<number>} The number of affected rows (should be 1)
-   */
-  async deleteUser(user_id, transaction) {
-    return await deleteRecord(User, user_id, transaction);
+
+  async deleteUser({ userId, transaction }) {
+    return await deleteRecord({ model: User, id: userId, transaction });
   }
-  /**
-   * Deletes a PlanInfo record by user id
-   * @param {number} user_id The id of the user whose PlanInfo to delete
-   * @param {Sequelize.Transaction} [transaction] The transaction to use
-   * @returns {Promise<number>} The number of affected rows (should be 1)
-   */
-  async deletePlanInfo(user_id, transaction) {
-    return await deleteRecord(PlanInfo, user_id, transaction);
+
+  async deletePlanInfo({ userId, transaction }) {
+    return await deleteRecord({ model: PlanInfo, id: userId, transaction });
   }
-  /**
-   * Finds a user by id and returns the user's email
-   * @param {number} user_id The id of the user to find
-   * @returns {Promise<string|undefined>} The email of the user, or undefined if no user was found
-   */
 
   async findUserEmail(user_id) {
     const user = await findRecordByPk(User, user_id);
@@ -278,32 +259,16 @@ class UserService {
     }
     return user.email;
   }
-  /**
-   * Finds a user by id and returns an object with the user's change email token and new email
-   * @param {number} user_id The id of the user to find
-   * @returns {Promise<{changeEmailToken: string, newEmail: string}|undefined>} The object with the change email token and new email,
-   * or undefined if no user was found
-   */
+
   async getSavedChangeEmailTokenAndNewEmail(user_id) {
     const user = await findRecordByPk(User, user_id);
     return this.destructureTokenAndNewEmail(user);
   }
 
-  /**
-   * Updates a user by user id
-   * @param {number} user_id The id of the user to update
-   * @param {object} data The data to update the user with
-   * @returns {Promise<number>} The number of affected rows (should be 1)
-   */
-  async updateUser(user_id, data) {
-    return await updateRecord(User, data, user_id);
+  async updateUser({ userId, data }) {
+    return await updateRecord({ model: User, updateData: data, id: userId });
   }
-  /**
-   * Updates a user's password and clears the user's reset password token and token expiry date
-   * @param {number} user_id The id of the user to update
-   * @param {string} password The new password to set
-   * @returns {Promise<number>} The number of affected rows (should be 1)
-   */
+
   async updateUserPassword(user_id, password) {
     return await updateRecord(
       User,
@@ -313,12 +278,7 @@ class UserService {
       user_id
     );
   }
-  /**
-   * Checks if the given email is in the database
-   * @param {string} email The email to check
-   * @param {Sequelize.Transaction} [transaction] The transaction to use
-   * @returns {Promise<boolean>} true if the email is in the database, false otherwise
-   */
+
   async emailIsInDatabase(email) {
     const existingEmail = await findRecordByValue(User, { email });
     if (existingEmail) {
@@ -331,51 +291,53 @@ class UserService {
   // Email functions //////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////////
 
-  async sendVerificationEmail(email, verificationLink, language) {
-    await sendMail({
-      email,
+  async sendEmailsConcerningNewUser({
+    userEmail,
+    username,
+    verificationToken,
+    language,
+  }) {
+    const verificationLink = `${
+      process.env.Node_ENV === "production"
+        ? process.env.PRODUCTION_ORIGIN
+        : process.env.DEV_ORIGIN
+    }/verifyUser?token=${verificationToken}`;
+
+    const error = await sendMail({
+      email: userEmail,
       subject: mailMessages.subjects.verificationEmail[language],
       text: `${mailMessages.content.clickVerificationLink[language]}: ${verificationLink}`,
     });
-  }
-  /**
-   * Creates a new PlanInfo record for a given user
-   * @param {number} user_id The id of the user to create the PlanInfo for
-   * @param {Sequelize.Transaction} transaction The transaction to create the record in
-   * @returns {Promise<PlanInfo>} The newly created PlanInfo record
-   */
 
-  async sendMailToMyselfAboutNewUser(userEmail, username) {
     await sendMail({
       email: process.env.MY_EMAIL,
       subject: `Nowy użytkownik: ${username}, (${new Date().toLocaleString(
         "pl-PL"
       )})`,
-      text: `Nowy użytkownik właśnie się zarejestrował.\nImię: ${username}\nAdres email: ${userEmail} `,
+      text: `Nowy użytkownik właśnie się zarejestrował.\nImię: ${username}\nAdres email: ${userEmail}\n${
+        error ? `Błąd: wystąpił błąd, zweryfikuj użytkownika ręcznie.` : ""
+      }`,
     });
   }
 
-  async sendMailToMyselfAboutUserVerification(
-    userEmail,
-    username,
-    activationLink
-  ) {
+  async sendMailToMyselfAboutUserVerification({ userId, activationToken }) {
+    const user = await this.findUserById({ userId });
+
+    const activationLink = `${
+      process.env.Node_ENV === "production"
+        ? process.env.PRODUCTION_ORIGIN
+        : process.env.DEV_ORIGIN
+    }/activateUser?token=${activationToken}`;
+
     await sendMail({
       email: process.env.MY_EMAIL,
-      subject: `Weryfikacja użytkownika: ${username}, (${new Date().toLocaleString(
-        "pl-PL"
-      )})`,
-      text: `Nowy użytkownik właźnie się zweryfikował.\nImię: ${username}\nAdres email: ${userEmail}\nLink aktywacyjny: ${activationLink}`,
+      subject: `Weryfikacja użytkownika: ${
+        user.username
+      }, (${new Date().toLocaleString("pl-PL")})`,
+      text: `Nowy użytkownik właźnie się zweryfikował.\nImię: ${user.username}\nAdres email: ${user.email}\nLink aktywacyjny: ${activationLink}`,
     });
   }
 
-  /**
-   * Sends an email with a reset token to the given email address
-   * @param {string} email The email address to send the email to
-   * @param {string} resetToken The reset token to include in the email
-   * @param {string} language The language to use in the email
-   * @returns {Promise<void>} The email has been sent
-   */
   async sendEmailResetEmail(email, resetToken, language) {
     if (language === "pl") {
       return await sendMail({
@@ -393,13 +355,7 @@ class UserService {
       return new Error();
     }
   }
-  /**
-   * Sends an email with a reset token to the given email address
-   * @param {string} email The email address to send the email to
-   * @param {string} resetToken The reset token to include in the email
-   * @param {string} language The language to use in the email
-   * @returns {Promise<void>} The email has been sent
-   */
+
   async sendPasswordResetEmail(email, resetToken, language) {
     if (language === "pl") {
       return await sendMail({
@@ -423,37 +379,61 @@ class UserService {
   /////////////////////////////////////////////////////////////////////////////////
 
   // Destructure functions for different user data objects
-  sanitizeUserData(data) {
-    return destructureData(data, [
-      "id",
-      "username",
-      "email",
-      "difficulty_clearance_level",
-      "is_active",
-      "is_verified",
-      "role",
-      "minimum_task_level_to_display",
+  sanitizeUserData({ data }) {
+    return destructureData({
+      data,
+      keys: [
+        "id",
+        "username",
+        "email",
+        "difficultyClearanceLevel",
+        "isActive",
+        "isVerified",
+        "role",
+        "minimumTaskLevelToDisplay",
+        "notes",
+      ],
+    });
+  }
+  destructureCreateUserData({ data }) {
+    return destructureData({
+      data,
+      keys: ["username", "email", "password", "role", "token"],
+    });
+  }
+
+  destructureUserVerificationData({ data }) {
+    return destructureData({
+      data,
+      keys: ["token"],
+    });
+  }
+
+  destructureUserActivationData({ data }) {
+    return destructureData({
+      data,
+      keys: ["token"],
+    });
+  }
+  destructureUpdateUserData({ data, isAdmin }) {
+    const adminKeys = [
+      "difficultyClearanceLevel",
+      "isVerified",
+      "isActive",
       "notes",
-    ]);
+    ];
+    const userKeys = ["username", "minimumTaskLevelToDisplay"];
+    return destructureData({
+      data,
+      keys: isAdmin ? adminKeys : userKeys,
+    });
   }
-  destructureCreateUserData(data) {
-    return destructureData(data, ["username", "email", "password"]);
-  }
-  destructureCreateUserDataAdmin(data) {
-    return destructureData(data, ["username", "email", "password", "token"]);
-  }
-  destructureUpdateUserDataAdmin(data) {
-    return destructureData(data, [
-      "difficulty_clearance_level",
-      "is_active",
-      "is_verified",
-    ]);
-  }
-  destructureUpdateUserDataUser(data) {
-    return destructureData(data, ["username", "minimum_task_level_to_display"]);
-  }
+
   destructurePasswordResetData(data) {
-    return destructureData(data, ["email", "password", "reset_password_token"]);
+    return destructureData({
+      data,
+      keys: ["email", "password", "reset_password_token"],
+    });
   }
 }
 

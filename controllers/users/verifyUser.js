@@ -1,83 +1,85 @@
 const {
   handleSuccessResponse,
   handleErrorResponse,
-} = require("../../utilities/responseHandlers");
+} = require("../../utilities/controllerUtilities");
 const logger = require("../../utilities/logger");
 const userService = require("./userService");
-const responses = require("../../responses");
+const responses = require("../../config/serverResponses");
 
 async function verifyUser(req, res) {
   const language = req.language;
-  const token = req.body.token;
+  const token = userService.destructureUserVerificationData({
+    data: req.body,
+  });
   try {
-    const decoded = userService.verifyVerificationToken(token);
+    // Verify token //////////////////////////////////////////////////////////////////////////////////////////////////
 
-    const tokenVerified = await userService.compareVerificationTokens(
+    const decoded = userService.verifyUserVerificationToken({ token });
+
+    if (
+      !(await userService.isVerificationTokenValid({
+        token,
+        userId: decoded.id,
+      }))
+    ) {
+      return handleErrorResponse(
+        res,
+        responses.statusCodes.unauthorized,
+        responses.common.error.invalidToken[language]
+      );
+    }
+
+    // Update user verification status /////////////////////////////////////////////////////////////////////////////
+
+    await userService.updateUserVerificationStatus({ userId: decoded.id });
+
+    // Clean up ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    await userService.deleteUserToken({
       token,
-      decoded.id
-    );
+      userId: decoded.id,
+      type: "verification",
+    });
 
-    if (!tokenVerified) {
-      return handleErrorResponse(
-        res,
-        400,
-        responses.commonMessages.invalidToken[language]
-      );
-    }
-    await userService.updateUserVerificationStatus(decoded.id);
+    // Send activation email to admin //////////////////////////////////////////////////////////////////////////////
 
-    const user = await userService.findUserById(decoded.id);
+    const activationToken =
+      await userService.generateAndSaveUserActivationToken({
+        userId: user.id,
+      });
 
-    if (!user.is_verified) {
-      return handleErrorResponse(
-        res,
-        400,
-        responses.usersMessages.userNotVerified[language]
-      );
-    }
-    await userService.deleteUserToken(token, user.id, "verification");
+    await userService.sendMailToMyselfAboutUserVerification({
+      userId: decoded.id,
+      activationToken,
+    });
 
-    const activationToken = userService.generateActivationToken(user.id);
-
-    await userService.saveActivationToken(user.id, activationToken);
-
-    const activationLink = `${
-      process.env.Node_ENV === "production"
-        ? process.env.PRODUCTION_ORIGIN
-        : process.env.DEV_ORIGIN
-    }/activateUser?token=${activationToken}`;
-
-    await userService.sendMailToMyselfAboutUserVerification(
-      user.email,
-      user.username,
-      activationLink
-    );
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     return handleSuccessResponse(
       res,
-      200,
+      responses.statusCodes.ok,
       responses.commonMessages.updateSuccess[language]
     );
   } catch (error) {
+    logger.error(error);
     if (error.message === "invalid signature") {
       return handleErrorResponse(
         res,
-        400,
-        responses.commonMessages.invalidToken[language]
+        responses.statusCodes.unauthorized,
+        responses.errors.authentication.invalidToken[language]
       );
     }
     if (error.message === "jwt expired") {
       return handleErrorResponse(
         res,
-        400,
-        responses.commonMessages.tokenExpired[language]
+        responses.statusCodes.unauthorized,
+        responses.errors.authentication.tokenExExpired[language]
       );
     }
-    logger.error(error);
     return handleErrorResponse(
       res,
-      500,
-      responses.commonMessages.serverError[language]
+      responses.statusCodes.internalServerError,
+      responses.errors.serverError[language]
     );
   }
 }

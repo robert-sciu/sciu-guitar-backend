@@ -32,8 +32,10 @@ async function initApp() {
   try {
     await db.sequelize.authenticate();
     logger.info("database connected successfully");
-    await db.sequelize.sync({ alter: true });
+    await db.sequelize.sync({ force: true });
     logger.info("database synced successfully");
+    const insertSampleData = require("../data/init");
+    await insertSampleData();
   } catch (error) {
     logger.error(error);
     process.exit(1);

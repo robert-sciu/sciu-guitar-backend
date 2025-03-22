@@ -25,24 +25,29 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
       },
-      is_verified: {
+      isVerified: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
         defaultValue: false,
+        field: "is_verified",
       },
-      is_active: {
+      isActive: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
         defaultValue: false,
+        field: "is_active",
       },
-      difficulty_clearance_level: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-      },
-      minimum_task_level_to_display: {
+      difficultyClearanceLevel: {
         type: DataTypes.INTEGER,
         allowNull: false,
         defaultValue: 1,
+        field: "difficulty_clearance_level",
+      },
+      minimumTaskLevelToDisplay: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 1,
+        field: "minimum_task_level_to_display",
       },
       notes: {
         type: DataTypes.STRING(1500),
@@ -61,7 +66,7 @@ module.exports = (sequelize, DataTypes) => {
     //   otherKey: "task_id",
     // });
     User.hasOne(models.PlanInfo, {
-      foreignKey: "user_id",
+      foreignKey: "userId",
       allowNull: false,
     });
     // User.hasMany(models.LessonReservation, {

@@ -113,6 +113,7 @@ async function findAllRecords({ model, id }) {
   if (id) {
     return await model.findAll({ where: { ...id } });
   }
+
   return await model.findAll();
 }
 

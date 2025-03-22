@@ -1,45 +1,52 @@
 const {
   handleErrorResponse,
   handleSuccessResponse,
-} = require("../../utilities/responseHandlers");
+} = require("../../utilities/controllerUtilities");
 const logger = require("../../utilities/logger");
 const userService = require("./userService");
-const responses = require("../../responses");
+const responses = require("../../config/serverResponses");
 
 async function activateUser(req, res) {
   const language = req.language;
-  const token = req.body.token;
+  const token = userService.destructureUserActivationData({
+    data: req.body,
+  });
 
   try {
-    const decoded = userService.verifyActivationToken(token);
+    // Verify token //////////////////////////////////////////////////////////////////////////////////////////////////
 
-    const tokenVerified = await userService.compareActivationTokens(
-      token,
-      decoded.id
-    );
+    const decoded = userService.verifyUserActivationToken({ token });
 
-    if (!tokenVerified) {
+    if (!(await userService.isActivationTokenValid(token, decoded.id))) {
       return handleErrorResponse(
         res,
-        400,
-        responses.commonMessages.invalidToken[language]
+        responses.statusCodes.unauthorized,
+        responses.errors.authentication.invalidToken[language]
       );
     }
-    await userService.updateUserActivationStatus(decoded.id, true);
+    // Update user activation status ////////////////////////////////////////////////////////////////////////////////
 
-    await userService.deleteUserToken(token, decoded.id, "activation");
+    await userService.updateUserActivationStatus({ userId: decoded.id });
+
+    // Clean up ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    await userService.deleteUserToken({
+      token,
+      userId: decoded.id,
+      type: "activation",
+    });
 
     return handleSuccessResponse(
       res,
-      200,
-      responses.usersMessages.userActivated[language]
+      responses.statusCodes.ok,
+      responses.messages.user.userActivated[language]
     );
   } catch (error) {
     logger.error(error);
     return handleErrorResponse(
       res,
-      400,
-      responses.commonMessages.invalidToken[language]
+      responses.statusCodes.internalServerError,
+      responses.errors.serverError[language]
     );
   }
 }

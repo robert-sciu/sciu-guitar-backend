@@ -1,4 +1,6 @@
-const { handleSuccessResponse } = require("../../utilities/responseHandlers");
+const {
+  handleSuccessResponse,
+} = require("../../utilities/controllerUtilities");
 
 function verifyToken(req, res) {
   const user = req.user;

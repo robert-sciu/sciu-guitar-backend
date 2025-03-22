@@ -2,9 +2,9 @@ const logger = require("../../utilities/logger");
 const {
   handleErrorResponse,
   handleSuccessResponse,
-} = require("../../utilities/responseHandlers");
+} = require("../../utilities/controllerUtilities");
 const userService = require("./userService");
-const responses = require("../../responses");
+const responses = require("../../config/serverResponses");
 
 async function resetPassword(req, res, next) {
   const language = req.language;

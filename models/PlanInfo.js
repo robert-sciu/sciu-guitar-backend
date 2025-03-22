@@ -8,44 +8,37 @@ module.exports = (sequelize, DataTypes) => {
         autoIncrement: true,
         allowNull: false,
       },
-      user_id: {
+      userId: {
         type: DataTypes.INTEGER,
         allowNull: false,
+        field: "user_id",
       },
-      has_permanent_reservation: {
-        type: DataTypes.BOOLEAN,
+      //to keep track of the balance of paid/unpaid lessons
+      lessonBalance: {
+        type: DataTypes.INTEGER,
         allowNull: false,
-        defaultValue: false,
+        defaultValue: 0,
+        field: "lesson_balance",
       },
-      permanent_reservation_enable_date: {
-        type: DataTypes.DATE,
-        allowNull: true,
-      },
-      permanent_reservation_disable_date: {
-        type: DataTypes.DATE,
-        allowNull: true,
-      },
-      permanent_reservation_weekday: {
+      lessonCount: {
         type: DataTypes.INTEGER,
-        allowNull: true,
+        allowNull: false,
+        defaultValue: 0,
+        field: "lesson_count",
       },
-      permanent_reservation_start_hour_UTC: {
-        type: DataTypes.TIME,
-        allowNull: true,
-      },
-      permanent_reservation_end_hour_UTC: {
-        type: DataTypes.TIME,
-        allowNull: true,
-      },
-      permanent_reservation_lesson_duration: {
+      cancelledLessonCount: {
         type: DataTypes.INTEGER,
-        allowNull: true,
+        allowNull: false,
+        defaultValue: 0,
+        field: "cancelled_lesson_count",
       },
-      payment_balance: {
+      rescheduledLessonCount: {
         type: DataTypes.INTEGER,
-        allowNull: true,
+        allowNull: false,
+        defaultValue: 0,
+        field: "rescheduled_lesson_count",
       },
-      special_discount: {
+      discount: {
         type: DataTypes.INTEGER,
         allowNull: false,
         defaultValue: 0,
@@ -58,7 +51,7 @@ module.exports = (sequelize, DataTypes) => {
   );
   PlanInfo.associate = (models) => {
     PlanInfo.belongsTo(models.User, {
-      foreignKey: "user_id",
+      foreignKey: "userId",
       allowNull: false,
     });
   };
