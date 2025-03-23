@@ -38,7 +38,6 @@ async function createLessonReservation(req, res) {
     !isAdmin &&
     (await lessonReservationsService.veryfyReservationData({
       reservationData,
-      language,
     }));
   if (error) {
     return handleErrorResponse(

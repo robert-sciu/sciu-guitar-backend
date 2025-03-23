@@ -19,7 +19,6 @@ async function deleteLessonReservation(req, res) {
 
     const lessonReservation =
       await lessonReservationsService.getReservationById({ id: reservationId });
-    console.log(lessonReservation);
 
     if (!lessonReservation) {
       return handleErrorResponse(

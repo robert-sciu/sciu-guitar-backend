@@ -1,3 +1,5 @@
+const config = require("../config/config")[process.env.NODE_ENV];
+
 module.exports = {
   common: {},
 
@@ -62,6 +64,21 @@ module.exports = {
         pl: "To nie jest twoja rezerwacja",
         en: "This is not your reservation",
       },
+      rescheduleTooFar: {
+        pl: `Nie można zmienić terminu o więcej niż ${config.lessonReservations.maxRescheduleDaysFromReservationCreation} dni`,
+        en: `Cannot change date by more than ${config.lessonReservations.maxRescheduleDaysFromReservationCreation} days`,
+      },
+    },
+
+    tag: {
+      tagNotFound: {
+        pl: "Tag nie istnieje",
+        en: "Tag does not exist",
+      },
+      tagAlreadyExists: {
+        pl: "Tag o podanej nazwie już istnieje",
+        en: "Tag with given name already exists",
+      },
     },
   },
 
@@ -92,11 +109,29 @@ module.exports = {
         pl: "Rezerwacja została usunięta",
         en: "Reservation deleted",
       },
+      reservationUpdated: {
+        pl: "Rezerwacja została zaktualizowana",
+        en: "Reservation successfully updated",
+      },
     },
     pricing: {
       pricingUpdated: {
         pl: "Cennik został zaktualizowany",
         en: "Pricing updated",
+      },
+    },
+    tag: {
+      tagCreated: {
+        pl: "Tag został utworzony",
+        en: "Tag created",
+      },
+      tagUpdated: {
+        pl: "Tag został zaktualizowany",
+        en: "Tag updated",
+      },
+      tagDeleted: {
+        pl: "Tag został usunięty",
+        en: "Tag deleted",
       },
     },
   },

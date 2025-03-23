@@ -5,6 +5,7 @@ const {
 const logger = require("../../utilities/logger");
 const userService = require("./userService");
 const responses = require("../../config/serverResponses");
+const commonService = require("../services/commonService");
 
 async function createUser(req, res) {
   const language = req.language;
@@ -29,7 +30,7 @@ async function createUser(req, res) {
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  const transaction = await userService.getTransaction();
+  const transaction = await commonService.getTransaction();
 
   try {
     // Check if user with the same email already exists //////////////////////////////////////////////////////////////

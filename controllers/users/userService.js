@@ -26,8 +26,6 @@ const tokensExpiry = require("../../config/config")[process.env.NODE_ENV]
 const { User, PlanInfo, UserToken, LessonReservation, UserTask } =
   require("../../models").sequelize.models;
 
-const { sequelize } = require("../../models");
-
 class UserService {
   /////////////////////////////////////////////////////////////////////////////////
   // utilities /////////////////////////////////////////////////////////////
@@ -130,10 +128,6 @@ class UserService {
   // Database functions ///////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////////
 
-  async getTransaction() {
-    return await sequelize.transaction();
-  }
-
   async createUser({ data, isAdmin, transaction }) {
     const userObject = {
       ...data,
@@ -182,9 +176,9 @@ class UserService {
     });
   }
 
-  async deleteUserReservations(user_id, transaction) {
+  async deleteUserReservations(userId, transaction) {
     await LessonReservation.destroy({
-      where: { user_id: user_id },
+      where: { userId },
       transaction,
     });
   }
@@ -299,8 +293,8 @@ class UserService {
   }) {
     const verificationLink = `${
       process.env.Node_ENV === "production"
-        ? process.env.PRODUCTION_ORIGIN
-        : process.env.DEV_ORIGIN
+        ? process.env.PRODUCTION_SERVER_ADDRESS
+        : process.env.DEV_SERVER_ADDRESS
     }/verifyUser?token=${verificationToken}`;
 
     const error = await sendMail({
@@ -325,8 +319,8 @@ class UserService {
 
     const activationLink = `${
       process.env.Node_ENV === "production"
-        ? process.env.PRODUCTION_ORIGIN
-        : process.env.DEV_ORIGIN
+        ? process.env.PRODUCTION_SERVER_ADDRESS
+        : process.env.DEV_SERVER_ADDRESS
     }/activateUser?token=${activationToken}`;
 
     await sendMail({

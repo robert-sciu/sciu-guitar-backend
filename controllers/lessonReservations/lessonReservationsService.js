@@ -57,6 +57,40 @@ class LessonReservationsService {
     return reservationData;
   }
 
+  createReservationUpdateData({ reservation, updateData, isAdmin }) {
+    const freeEdit = reservation.freeEditExpiryDate > new Date();
+
+    const reservationUpdateData = {
+      id: reservation.id,
+      userId: reservation.userId,
+      username: reservation.username,
+      startUtc: reservation.startUtc,
+      endUtc: reservation.endUtc,
+      ...updateData,
+      //prettier-ignore
+      duration: (new Date(updateData.endUtc) - new Date(updateData.startUtc)) / 1000 / 60,
+      rescheduledByUser: !isAdmin && !freeEdit,
+      rescheduledByAdmin: isAdmin,
+    };
+
+    return reservationUpdateData;
+  }
+
+  isRescheduleTimeTooFar({ reservation, updateData }) {
+    const reservationCreatedAt = new Date(reservation.createdAt);
+
+    const maxRescheduleDate = new Date(
+      reservationCreatedAt.setDate(
+        reservationCreatedAt.getDate() +
+          config.lessonReservations.maxRescheduleDaysFromReservationCreation
+      )
+    );
+
+    const rescheduleDate = new Date(updateData.startUtc);
+
+    return rescheduleDate > maxRescheduleDate;
+  }
+
   async getReservationById({ id }) {
     return await findRecordByPk({ model: LessonReservation, id: id });
   }
@@ -71,18 +105,27 @@ class LessonReservationsService {
     return await updateRecord({
       model: PlanInfo,
       updateData: { canceledLessonCount },
-      id: userId,
+      id: planInfo.id,
     });
   }
 
-  async updateRescheduledReservationsCount(user_id) {
-    const planInfo = await this.getUserPlanInfo(user_id);
-    const rescheduled_lesson_count = planInfo.rescheduled_lesson_count + 1;
-    return await updateRecord(PlanInfo, { rescheduled_lesson_count }, user_id);
+  async updateRescheduledReservationsCount({ userId }) {
+    const planInfo = await this.getUserPlanInfo({ userId });
+    const rescheduledLessonCount = planInfo.rescheduledLessonCount + 1;
+
+    return await updateRecord({
+      model: PlanInfo,
+      updateData: { rescheduledLessonCount },
+      id: planInfo.id,
+    });
   }
 
-  async rescheduleReservation(updateData, reservation_id) {
-    return await updateRecord(LessonReservation, updateData, reservation_id);
+  async updateReservation({ reservationUpdateData }) {
+    return await updateRecord({
+      model: LessonReservation,
+      updateData,
+      id: reservationUpdateData.id,
+    });
   }
 
   async deleteReservation({ id }) {

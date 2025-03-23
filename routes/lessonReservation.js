@@ -14,11 +14,11 @@ const lessonReservationRouterProtected = () => {
   router
     .route("/")
     .get(lessonReservationController.getLessonReservations)
-    .post(lessonReservationController.createLessonReservation)
-    .patch(lessonReservationController.updateLessonReservation);
-
+    .post(lessonReservationController.createLessonReservation);
+  // id is reservation id
   router
     .route("/:id")
+    .patch(attachIdParam, lessonReservationController.updateLessonReservation)
     .delete(attachIdParam, lessonReservationController.deleteLessonReservation);
 
   return router;
@@ -27,6 +27,7 @@ const lessonReservationRouterProtected = () => {
 const lessonReservationRouterAdmin = () => {
   const router = express.Router();
   router.route("/").post(lessonReservationController.createLessonReservation);
+  // id is reservation id
   router
     .route("/:id")
     .patch(attachIdParam, lessonReservationController.updateLessonReservation)

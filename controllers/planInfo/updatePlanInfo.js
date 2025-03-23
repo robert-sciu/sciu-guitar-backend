@@ -23,7 +23,7 @@ async function updatePlanInfo(req, res) {
     }
 
     await planInfoService.updatePlanInfo({
-      userId,
+      planInfoId: planInfo.id,
       updateData,
     });
 

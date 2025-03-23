@@ -17,6 +17,7 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
       },
+
       startUtc: {
         type: DataTypes.DATE,
         allowNull: false,
@@ -42,6 +43,12 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
         defaultValue: false,
         field: "rescheduled_by_teacher",
+      },
+      createdAt: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW,
+        field: "created_at",
       },
       freeEditExpiryDate: {
         type: DataTypes.DATE,

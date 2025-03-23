@@ -7,11 +7,11 @@ const logger = require("../../utilities/logger");
 const lessonReservationsService = require("./lessonReservationsService");
 const responses = require("../../config/serverResponses");
 const commonService = require("../services/commonService");
+const config = require("../../config/config")[process.env.NODE_ENV];
 
 async function updateLessonReservation(req, res) {
   const language = req.language;
   const user = req.user;
-  // const userId = user.id;
   const isAdmin = commonService.userIsAdmin({ user });
   const reservationId = req.id;
   const updateData = lessonReservationsService.destructureReservationData({
@@ -23,6 +23,7 @@ async function updateLessonReservation(req, res) {
       id: reservationId,
     });
 
+    // check if reservation exists ///////////////////////////////////////////////////////
     if (!reservation) {
       return handleErrorResponse(
         res,
@@ -30,6 +31,8 @@ async function updateLessonReservation(req, res) {
         responses.errors.lessonReservation.reservationNotFound[language]
       );
     }
+
+    // check if reservation belongs to user or if admin is making changes ////////////////
     if (!isAdmin && reservation.userId !== user.id) {
       return handleErrorResponse(
         res,
@@ -38,41 +41,70 @@ async function updateLessonReservation(req, res) {
       );
     }
 
-    const userId = isAdmin ? reservation.userId : user.id;
+    // check if reservation is rescheduled too far by user ///////////////////////////////
 
-    const updateData = {
-      id: reservation_id,
-      ...updateTimeData,
-      userId,
-      username: user.username,
-      rescheduledByUser: commonService.userIsUser({ user }),
-      rescheduledByAdmin: commonService.userIsAdmin({ user }),
-    };
-
-    const { error, errorMsg } =
-      await lessonReservationsService.veryfyReservationData(updateData);
-    if (error) {
-      return handleErrorResponse(res, 409, errorMsg[language]);
+    if (
+      !isAdmin &&
+      lessonReservationsService.isRescheduleTimeTooFar({
+        reservation,
+        updateData,
+      })
+    ) {
+      return handleErrorResponse(
+        res,
+        responses.statusCodes.conflict,
+        responses.errors.lessonReservation.rescheduleTooFar[language]
+      );
     }
 
-    await lessonReservationsService.rescheduleReservation(
-      updateData,
-      reservation_id
-    );
+    // prepare reservation update data ///////////////////////////////////////////////////
 
-    await lessonReservationsService.updateRescheduledReservationsCount(user_id);
+    const reservationUpdateData =
+      lessonReservationsService.createReservationUpdateData({
+        reservation,
+        updateData,
+        isAdmin,
+      });
+
+    // verify reservation and check if it doesn't conflict with existing reservations ////
+
+    const { error, errorMsg } =
+      !isAdmin &&
+      (await lessonReservationsService.veryfyReservationData({
+        reservationData: reservationUpdateData,
+      }));
+    if (error) {
+      return handleErrorResponse(
+        res,
+        responses.statusCodes.conflict,
+        errorMsg[language]
+      );
+    }
+
+    // update reservation ////////////////////////////////////////////////////////////////
+
+    await lessonReservationsService.updateReservation({
+      reservationUpdateData,
+    });
+
+    // update user's rescheduled reservations count //////////////////////////////////////
+
+    !isAdmin &&
+      (await lessonReservationsService.updateRescheduledReservationsCount({
+        userId: reservation.userId,
+      }));
 
     return handleSuccessResponse(
       res,
-      200,
-      responses.commonMessages.updateSuccess[language]
+      responses.statusCodes.ok,
+      responses.messages.lessonReservation.reservationUpdated[language]
     );
   } catch (error) {
     logger.error(error);
     return handleErrorResponse(
       res,
-      500,
-      responses.commonMessages.serverError[language]
+      responses.statusCodes.internalServerError,
+      responses.errors.serverError[language]
     );
   }
 }

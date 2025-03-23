@@ -6,20 +6,20 @@ const {
 const logger = require("../../utilities/logger");
 const responses = require("../../config/serverResponses");
 const userService = require("./userService");
+const commonService = require("../services/commonService");
 
 async function deleteUser(req, res) {
   const language = req.language;
   const id = req.id;
 
-  const transaction = await userService.getTransaction();
+  const transaction = await commonService.getTransaction();
 
   try {
-
     await userService.deletePlanInfo({ userId: id, transaction });
 
     await userService.deleteAllTokensForUser({ userId: id, transaction });
 
-    // await userService.deleteUserReservations(id, transaction);
+    await userService.deleteUserReservations({ userId: id, transaction });
 
     // await userService.deleteUserTasks(id, transaction);
 

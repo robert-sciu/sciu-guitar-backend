@@ -1,16 +1,6 @@
 const jwt = require("jsonwebtoken");
 const tokensExpiration =
   require("../config/config")[process.env.NODE_ENV].tokensExpiration;
-// function getTokenExpiryMinutesVer(minutes) {
-//   const now = new Date();
-//   now.setMinutes(now.getMinutes() + minutes);
-//   return now;
-// }
-// function getTokenExpiryDaysVer(days) {
-//   const now = new Date();
-//   now.setDate(now.getDate() + days);
-//   return now;
-// }
 
 //////////////////////////////////////////////////////////////////////
 ///// AUTHORIZATION TOKENS  //////////////////////////////////////////
@@ -51,7 +41,7 @@ function verifyRefreshJWT(token) {
 //////////////////////////////////////////////////////////////////////
 
 function generateUserVerificationToken(userId) {
-  const secret = process.env.JWT_VERIFICATION_SECRET;
+  const secret = process.env.JWT_USER_VERIFICATION_SECRET;
   const id = userId;
   return jwt.sign(
     {
@@ -65,7 +55,7 @@ function generateUserVerificationToken(userId) {
 }
 
 function verifyVerificationToken(token) {
-  const secret = process.env.JWT_VERIFICATION_SECRET;
+  const secret = process.env.JWT_USER_VERIFICATION_SECRET;
   return jwt.verify(token, secret);
 }
 
@@ -102,6 +92,4 @@ module.exports = {
   verifyVerificationToken,
   generateUserActivationToken,
   verifyUserActivationToken,
-  // getTokenExpiryMinutesVer,
-  // getTokenExpiryDaysVer,
 };

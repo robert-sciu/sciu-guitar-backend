@@ -74,7 +74,7 @@ function checkIfReservationDateIsAllowed({ reservationData }) {
 }
 
 async function checkForOverlapingReservations({ reservationData }) {
-  let overlap;
+  // let overlap;
   const { startUtc, endUtc } = reservationData;
   const overlappingReservations = await LessonReservation.findAll({
     where: {
@@ -93,7 +93,7 @@ async function checkForOverlapingReservations({ reservationData }) {
   });
 
   if (overlappingReservations.length > 0) {
-    overlap = overlappingReservations.map((reservation) => {
+    overlappingReservations.map((reservation) => {
       const errorMsg = {
         pl: `Konflikt z rezerwacją dokonaną przez ${
           reservation.userId === reservationData.userId

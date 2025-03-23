@@ -7,7 +7,6 @@ const {
 const { sanitize } = require("../middleware/sanitization");
 const { detectLanguage } = require("../middleware/languageDetector");
 
-// const express = require("express");
 const {
   authenticateJWT,
   authenticateAdminJWT,
@@ -23,6 +22,8 @@ const {
   lessonReservationRouterProtected,
   lessonReservationRouterAdmin,
 } = require("./lessonReservation");
+const { tagsRouterAdmin, tagsRouterProtected } = require("./tags");
+const { tasksRouterProtected, tasksRouterAdmin } = require("./tasks");
 
 const apiBaseUrl = process.env.API_BASE_URL;
 
@@ -41,9 +42,9 @@ const protectedRoutes = (app) => {
   app.use(`${apiBaseUrl}/users`, sanitize, userRouterProtected());
   app.use(`${apiBaseUrl}/planInfo`, sanitize, planInfoRouterProtected());
   app.use(`${apiBaseUrl}/lessonReservation`, sanitize, lessonReservationRouterProtected());
-  // app.use(`${apiBaseUrl}/tasks`, sanitize, tasksRouterProtected());
+  app.use(`${apiBaseUrl}/tasks`, sanitize, tasksRouterProtected());
   // app.use(`${apiBaseUrl}/userTasks`, sanitize, userTasksRouterProtected());
-  // app.use(`${apiBaseUrl}/tags`, sanitize, tagsRouterOpen());
+  app.use(`${apiBaseUrl}/tags`, sanitize, tagsRouterProtected());
   // app.use(`${apiBaseUrl}/taskTags`, sanitize, taskTagsRouter);
   // app.use(`${apiBaseUrl}/pageTexts`, sanitize, pageTextsRouter);
   // // app.use(`${apiBaseUrl}/pageImages`, sanitize, pageImagesRouter);
@@ -65,9 +66,9 @@ const adminRoutes = (app) => {
   //prettier-ignore
   app.use(`${apiBaseUrl}/admin/lessonReservation`, sanitize, lessonReservationRouterAdmin());
 
-  // app.use(`${apiBaseUrl}/admin/tasks`, sanitize, tasksRouterAdmin());
+  app.use(`${apiBaseUrl}/admin/tasks`, sanitize, tasksRouterAdmin());
   // app.use(`${apiBaseUrl}/admin/userTasks`, sanitize, userTasksRouterAdmin());
-  // app.use(`${apiBaseUrl}/admin/tags`, sanitize, tagsRouterAdmin());
+  app.use(`${apiBaseUrl}/admin/tags`, sanitize, tagsRouterAdmin());
   // app.use(`${apiBaseUrl}/admin/pageImages`, sanitize, pageImagesRouterAdmin());
 };
 

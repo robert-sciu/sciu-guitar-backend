@@ -18,11 +18,11 @@ class PlanInfoService {
     return await findAllRecords({ model: PlanInfo });
   }
 
-  async updatePlanInfo({ userId, updateData }) {
+  async updatePlanInfo({ planInfoId, updateData }) {
     return await updateRecord({
       model: PlanInfo,
       updateData: updateData,
-      id: userId,
+      id: planInfoId,
     });
   }
 

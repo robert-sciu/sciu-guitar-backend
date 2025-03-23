@@ -10,6 +10,7 @@ const commonConfig = {
   },
   lessonReservations: {
     freeEditExpiryMinutes: 60,
+    maxRescheduleDaysFromReservationCreation: 7,
   },
 };
 

@@ -32,8 +32,8 @@ function useSecureConnection(app) {
 
 const allowedOrigins = [
   process.env.NODE_ENV === "production"
-    ? process.env.PRODUCTION_ORIGIN
-    : process.env.DEV_ORIGIN,
+    ? process.env.PRODUCTION_SERVER_ADDRESS
+    : process.env.DEV_SERVER_ADDRESS,
 ];
 
 function useCors(app) {

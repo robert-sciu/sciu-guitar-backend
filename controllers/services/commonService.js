@@ -1,4 +1,10 @@
+const { sequelize } = require("../../models");
+
 class CommonService {
+  async getTransaction() {
+    return await sequelize.transaction();
+  }
+
   userIsAdmin({ user }) {
     return user.role === "admin";
   }
