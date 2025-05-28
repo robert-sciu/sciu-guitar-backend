@@ -10,18 +10,8 @@ const { destructureData } = require("../../utilities/serviceUtilities");
 const { Tag } = require("../../models").sequelize.models;
 
 class TagService {
-  constructor() {
-    this.model = Tag;
-    this._tag = {};
-    this._allTags = [];
-  }
-  async fetchAllTags() {
-    // return await findAllRecords({ model: Tag });
-    this._allTags = await findAllRecords({ model: Tag });
-  }
-
-  get allTags() {
-    return this._allTags;
+  async getAllTags() {
+    return await findAllRecords({ model: Tag });
   }
 
   async findTagById({ id }) {

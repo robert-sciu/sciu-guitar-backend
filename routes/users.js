@@ -3,22 +3,34 @@ const usersController = require("../controllers/users");
 const { attachIdParam } = require("../middleware/commonMiddleware");
 
 const express = require("express");
+const {
+  createUserValidator,
+  userTokenValidator,
+  resetPasswordValidator,
+  updateUserValidator,
+} = require("../validators/userValidator");
+const { validate } = require("../middleware/validator");
+const { idValidator } = require("../validators/commonValidator");
 
 const userRouterOpen = () => {
   const router = express.Router();
 
-  router.route("/").post(usersController.createUser);
-
-  // router.route("/create_admin").post(usersController.createUser);
-
-  router.route("/verify_user").post(usersController.verifyUser);
-
-  router.route("/activate_user").post(usersController.activateUser);
+  router
+    .route("/")
+    .post(createUserValidator, validate, usersController.createUser);
 
   router
-    .route("/reset_password")
+    .route("/verifyUser")
+    .post(userTokenValidator, validate, usersController.verifyUser);
+
+  router
+    .route("/activateUser")
+    .post(userTokenValidator, validate, usersController.activateUser);
+
+  router
+    .route("/resetPassword")
     .post(usersController.resetPasswordRequest)
-    .patch(usersController.resetPassword);
+    .patch(resetPasswordValidator, validate, usersController.resetPassword);
 
   return router;
 };
@@ -29,25 +41,26 @@ const userRouterProtected = () => {
   router
     .route("/")
     .get(usersController.getUser)
-    .patch(usersController.updateUser);
+    .patch(updateUserValidator, validate, usersController.updateUser);
 
+  //TODO: add change password route validators
   router
-    .route("/change_email_address")
+    .route("/changeEmailAddress")
     .post(usersController.changeEmailRequest)
     .patch(usersController.changeEmail);
 
   return router;
 };
-
 const userRouterAdmin = () => {
   const router = express.Router();
 
   router.route("/").get(usersController.getAllUsers);
 
   router
+    // user id
     .route("/:id")
-    .all(attachIdParam)
-    .patch(usersController.updateUser)
+    .all(attachIdParam, idValidator, validate)
+    .patch(updateUserValidator, validate, usersController.updateUser)
     .delete(usersController.deleteUser);
 
   return router;

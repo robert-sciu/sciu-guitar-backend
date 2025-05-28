@@ -8,16 +8,15 @@ module.exports = {
       pl: "Wystąpił błąd serwera",
       en: "Server error",
     },
-
     authentication: {
       wrongCredentials: {
         pl: "Nieprawidłowy login lub hasło",
         en: "Wrong login or password",
       },
-      missingToken: {
-        pl: "Brak tokenu",
-        en: "Missing token",
-      },
+      // missingToken: {
+      //   pl: "Brak tokenu",
+      //   en: "Missing token",
+      // },
       invalidToken: {
         pl: "Nieprawidłowy token",
         en: "Invalid token",
@@ -27,7 +26,6 @@ module.exports = {
         en: "Token expired",
       },
     },
-
     user: {
       userNotFound: {
         pl: "Użytkownik nie istnieje",
@@ -54,7 +52,6 @@ module.exports = {
         en: "User activated",
       },
     },
-
     lessonReservation: {
       reservationNotFound: {
         pl: "Rezerwacja nie istnieje",
@@ -69,7 +66,26 @@ module.exports = {
         en: `Cannot change date by more than ${config.lessonReservations.maxRescheduleDaysFromReservationCreation} days`,
       },
     },
-
+    task: {
+      taskAlreadyExists: {
+        pl: "Zadanie o podanym tytule już istnieje",
+        en: "Task with given title already exists",
+      },
+      taskNotFound: {
+        pl: "Zadanie nie istnieje",
+        en: "Task does not exist",
+      },
+    },
+    userTasks: {
+      userTaskAlreadyExists: {
+        pl: "Zadanie już istnieje",
+        en: "User task already exists",
+      },
+      userTaskNotFound: {
+        pl: "Zadanie nie istnieje",
+        en: "User task does not exist",
+      },
+    },
     tag: {
       tagNotFound: {
         pl: "Tag nie istnieje",
@@ -80,6 +96,42 @@ module.exports = {
         en: "Tag with given name already exists",
       },
     },
+    taskTag: {
+      taskTagAlreadyExists: {
+        pl: "Połączenie tag-zadanie już istnieje",
+        en: "Task tag already exists",
+      },
+    },
+    pageImages: {
+      pageImageNotFound: {
+        pl: "Obraz nie istnieje",
+        en: "Image does not exist",
+      },
+      pageImageAlreadyExists: {
+        pl: "Obraz o podanej nazwie już istnieje",
+        en: "Image with given name already exists",
+      },
+      compressionConfigNotFound: {
+        pl: "Nie znaleziono konfiguracji kompresji",
+        en: "Compression config not found",
+      },
+    },
+    pageTexts: {
+      invalidRole: {
+        pl: "Nieprawidłowa kategoria tekstu",
+        en: "Invalid text role",
+      },
+    },
+    youTubeVideos: {
+      youTubeVideoAlreadyExists: {
+        pl: "Video o podanym tytule lub url już istnieje",
+        en: "Video with given title or url already exists",
+      },
+      roleNotAllowed: {
+        pl: "Nieprawidłowa kategoria dla tego filmu",
+        en: "Invalid role for this video",
+      },
+    },
   },
 
   messages: {
@@ -87,7 +139,6 @@ module.exports = {
       pl: "Zaktualizowano pomyślnie",
       en: "Updated successfully",
     },
-
     authentication: {
       logoutSuccessful: {
         pl: "Wylogowano pomyślnie",
@@ -120,6 +171,34 @@ module.exports = {
         en: "Pricing updated",
       },
     },
+    task: {
+      taskCreated: {
+        pl: "Zadanie zostało utworzone",
+        en: "Task created successfully",
+      },
+      taskUpdated: {
+        pl: "Zadanie zostało zaktualizowane",
+        en: "Task updated",
+      },
+      taskDeleted: {
+        pl: "Zadanie zostało usunięte",
+        en: "Task deleted",
+      },
+    },
+    userTasks: {
+      userTasksCreated: {
+        pl: "Zadania użytkownika zostały utworzone",
+        en: "User tasks created",
+      },
+      userTasksUpdated: {
+        pl: "Zadania użytkownika zostały zaktualizowane",
+        en: "User tasks updated",
+      },
+      userTasksDeleted: {
+        pl: "Zadania użytkownika zostały usunięte",
+        en: "User tasks deleted",
+      },
+    },
     tag: {
       tagCreated: {
         pl: "Tag został utworzony",
@@ -132,6 +211,42 @@ module.exports = {
       tagDeleted: {
         pl: "Tag został usunięty",
         en: "Tag deleted",
+      },
+    },
+    taskTag: {
+      taskTagCreated: {
+        pl: "Zadanie zostało przypisane do tagu",
+        en: "Task assigned to tag",
+      },
+      taskTagDeleted: {
+        pl: "Zadanie zostało usunięte z tagu",
+        en: "Task removed from tag",
+      },
+    },
+    pageImage: {
+      pageImageCreated: {
+        pl: "Obraz został utworzony",
+        en: "Image created",
+      },
+      pageImageDeleted: {
+        pl: "Obraz został usunięty",
+        en: "Image deleted",
+      },
+    },
+    pageTexts: {
+      pageTextsUpdated: {
+        pl: "Teksty zostały zaktualizowane",
+        en: "Page texts updated",
+      },
+    },
+    youTubeVideos: {
+      youTubeVideoCreated: {
+        pl: "Link został utworzony",
+        en: "YouTube link created",
+      },
+      youTubeVideoDeleted: {
+        pl: "Link został usunięty",
+        en: "YouTube link deleted",
       },
     },
   },

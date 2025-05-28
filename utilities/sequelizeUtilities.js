@@ -60,29 +60,29 @@ async function findRecordByPk({ model, id, transaction }) {
   return await model.findByPk(id);
 }
 
-/**
- * Finds a record by foreign key using the provided model and ID.
- *
- * @param {Object} model - The model used to interact with the database.
- * @param {Object|number} id - The foreign key of the record to find. It can be an object with multiple keys or a single numeric ID.
- * @param {Object} [transaction] - The transaction object (optional).
- * @return {Promise<Object>} A promise that resolves to the found record.
- */
-async function findRecordByFk({ model, id, transaction }) {
-  if (transaction) {
-    if (!Number(id) && Object.keys(id).length > 1) {
-      return await model.findOne({
-        where: { ...id },
-        transaction: transaction,
-      });
-    }
-    return await model.findOne({ where: { id }, transaction: transaction });
-  }
-  if (!Number(id) && Object.keys(id).length > 1) {
-    return await model.findOne({ where: { ...id } });
-  }
-  return await model.findOne({ where: { id } });
-}
+// /**
+//  * Finds a record by foreign key using the provided model and ID.
+//  *
+//  * @param {Object} model - The model used to interact with the database.
+//  * @param {Object|number} id - The foreign key of the record to find. It can be an object with multiple keys or a single numeric ID.
+//  * @param {Object} [transaction] - The transaction object (optional).
+//  * @return {Promise<Object>} A promise that resolves to the found record.
+//  */
+// async function findRecordByFk({ model, id, transaction }) {
+//   if (transaction) {
+//     if (!Number(id) && Object.keys(id).length > 0) {
+//       return await model.findOne({
+//         where: { ...id },
+//         transaction: transaction,
+//       });
+//     }
+//     return await model.findOne({ where: { id }, transaction: transaction });
+//   }
+//   if (!Number(id) && Object.keys(id).length > 0) {
+//     return await model.findOne({ where: { ...id } });
+//   }
+//   return await model.findOne({ where: { id } });
+// }
 
 /**
  * Finds a record from the database using the provided model and value.
@@ -134,7 +134,7 @@ async function deleteRecord({ model, id, transaction }) {
 
 module.exports = {
   findRecordByPk,
-  findRecordByFk,
+  // findRecordByFk,
   findRecordByValue,
   findAllRecords,
   deleteRecord,

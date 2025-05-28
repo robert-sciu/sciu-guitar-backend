@@ -3,10 +3,8 @@ const {
   authRouterProtected,
   authRouterAdmin,
 } = require("./authentication");
-
 const { sanitize } = require("../middleware/sanitization");
 const { detectLanguage } = require("../middleware/languageDetector");
-
 const {
   authenticateJWT,
   authenticateAdminJWT,
@@ -24,33 +22,69 @@ const {
 } = require("./lessonReservation");
 const { tagsRouterAdmin, tagsRouterProtected } = require("./tags");
 const { tasksRouterProtected, tasksRouterAdmin } = require("./tasks");
+const { pageImagesRouterOpen, pageImagesRouterAdmin } = require("./pageImages");
+const { pageTextsRouterOpen, pageTextsRouterAdmin } = require("./pageTexts");
+const {
+  youTubeVideoRouterOpen,
+  youTubeVideoRouterAdmin,
+} = require("./youTubeVideos");
+const {
+  userTasksRouterAdmin,
+  userTasksRouterProtected,
+} = require("./userTasks");
+const { taskTagsRouterProtected, taskTagsRouterAdmin } = require("./taskTags");
 
 const apiBaseUrl = process.env.API_BASE_URL;
 
+const swaggerUi = require("swagger-ui-express");
+const swaggerJsdoc = require("swagger-jsdoc");
+const options = {
+  definition: {
+    openapi: "3.0.0",
+    info: {
+      title: "My API",
+      version: "1.0.0",
+      description: "API documentation generated from code",
+    },
+  },
+  apis: ["./routes/*.js"], // Point to your routes files
+};
+
+// Generate Swagger docs
+const swaggerSpec = swaggerJsdoc(options);
+const YAML = require("yamljs");
+const path = require("path");
+// const swaggerDocument = YAML.load(path.join(__dirname, "../docs", "3.0.yml"));
+
 const openRoutes = (app) => {
   app.use(detectLanguage);
-  app.use(`${apiBaseUrl}/open/auth`, sanitize, authRouterOpen());
-  app.use(`${apiBaseUrl}/open/users`, sanitize, userRouterOpen());
-  app.use(`${apiBaseUrl}/open/pricing`, sanitize, pricingRouterOpen());
+  app.use(sanitize);
+  app.use(`${apiBaseUrl}/open/auth`, authRouterOpen());
+  app.use(`${apiBaseUrl}/open/users`, userRouterOpen());
+  app.use(`${apiBaseUrl}/open/pricing`, pricingRouterOpen());
+  app.use(`${apiBaseUrl}/open/pageImages`, pageImagesRouterOpen());
+  app.use(`${apiBaseUrl}/open/pageTexts`, pageTextsRouterOpen());
+  //prettier-ignore
+  app.use(`${apiBaseUrl}/open/youTubeVideos`,  youTubeVideoRouterOpen());
+  app.use(
+    `${apiBaseUrl}/open/apiDocs`,
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerSpec)
+  );
 };
 //prettier-ignore
 const protectedRoutes = (app) => {
   app.use(sanitize)
   app.use(authenticateJWT)
   app.use(detectLanguage)
-  app.use(`${apiBaseUrl}/auth`, sanitize, authRouterProtected());
-  app.use(`${apiBaseUrl}/users`, sanitize, userRouterProtected());
-  app.use(`${apiBaseUrl}/planInfo`, sanitize, planInfoRouterProtected());
-  app.use(`${apiBaseUrl}/lessonReservation`, sanitize, lessonReservationRouterProtected());
-  app.use(`${apiBaseUrl}/tasks`, sanitize, tasksRouterProtected());
-  // app.use(`${apiBaseUrl}/userTasks`, sanitize, userTasksRouterProtected());
-  app.use(`${apiBaseUrl}/tags`, sanitize, tagsRouterProtected());
-  // app.use(`${apiBaseUrl}/taskTags`, sanitize, taskTagsRouter);
-  // app.use(`${apiBaseUrl}/pageTexts`, sanitize, pageTextsRouter);
-  // // app.use(`${apiBaseUrl}/pageImages`, sanitize, pageImagesRouter);
-  // app.use(`${apiBaseUrl}/youTubeVideos`, sanitize, youTubeVideosRouter);
-  // //prettier-ignore
-  // app.use(`${apiBaseUrl}/reset`, dbResetRouter);
+  app.use(`${apiBaseUrl}/auth`,  authRouterProtected());
+  app.use(`${apiBaseUrl}/users`,  userRouterProtected());
+  app.use(`${apiBaseUrl}/planInfo`,  planInfoRouterProtected());
+  app.use(`${apiBaseUrl}/lessonReservation`,  lessonReservationRouterProtected());
+  app.use(`${apiBaseUrl}/tasks`,  tasksRouterProtected());
+  app.use(`${apiBaseUrl}/userTasks`,  userTasksRouterProtected());
+  app.use(`${apiBaseUrl}/tags`,  tagsRouterProtected());
+  app.use(`${apiBaseUrl}/taskTags`,  taskTagsRouterProtected());
   
 }
 
@@ -58,18 +92,21 @@ const adminRoutes = (app) => {
   app.use(sanitize);
   app.use(authenticateAdminJWT);
   app.use(detectLanguage);
-  app.use(`${apiBaseUrl}/admin/auth`, sanitize, authRouterAdmin());
-  app.use(`${apiBaseUrl}/admin/users`, sanitize, userRouterAdmin());
+  app.use(`${apiBaseUrl}/admin/auth`, authRouterAdmin());
+  app.use(`${apiBaseUrl}/admin/users`, userRouterAdmin());
   //prettier-ignore
-  app.use(`${apiBaseUrl}/admin/planInfo`, sanitize, planInfoRouterAdmin());
-  app.use(`${apiBaseUrl}/admin/pricing`, sanitize, pricingRouterAdmin());
+  app.use(`${apiBaseUrl}/admin/planInfo`,  planInfoRouterAdmin());
+  app.use(`${apiBaseUrl}/admin/pricing`, pricingRouterAdmin());
   //prettier-ignore
-  app.use(`${apiBaseUrl}/admin/lessonReservation`, sanitize, lessonReservationRouterAdmin());
-
-  app.use(`${apiBaseUrl}/admin/tasks`, sanitize, tasksRouterAdmin());
-  // app.use(`${apiBaseUrl}/admin/userTasks`, sanitize, userTasksRouterAdmin());
-  app.use(`${apiBaseUrl}/admin/tags`, sanitize, tagsRouterAdmin());
-  // app.use(`${apiBaseUrl}/admin/pageImages`, sanitize, pageImagesRouterAdmin());
+  app.use(`${apiBaseUrl}/admin/lessonReservation`,  lessonReservationRouterAdmin());
+  app.use(`${apiBaseUrl}/admin/tasks`, tasksRouterAdmin());
+  app.use(`${apiBaseUrl}/admin/userTasks`, userTasksRouterAdmin());
+  app.use(`${apiBaseUrl}/admin/tags`, tagsRouterAdmin());
+  app.use(`${apiBaseUrl}/admin/pageImages`, pageImagesRouterAdmin());
+  app.use(`${apiBaseUrl}/admin/pageTexts`, pageTextsRouterAdmin());
+  //prettier-ignore
+  app.use(`${apiBaseUrl}/admin/youTubeVideos`,  youTubeVideoRouterAdmin());
+  app.use(`${apiBaseUrl}/admin/taskTags`, taskTagsRouterAdmin());
 };
 
 module.exports = (app) => {

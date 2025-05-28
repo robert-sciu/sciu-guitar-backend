@@ -20,13 +20,13 @@ module.exports = (sequelize, DataTypes) => {
     }
   );
 
-  // Tag.associate = (models) => {
-  //   Tag.belongsToMany(models.Task, {
-  //     through: models.TaskTag,
-  //     foreignKey: "tag_id",
-  //     otherKey: "task_id",
-  //     allowNull: false,
-  //   });
-  // };
+  Tag.associate = (models) => {
+    Tag.belongsToMany(models.Task, {
+      through: models.TaskTag,
+      foreignKey: "tagId",
+      otherKey: "taskId",
+      allowNull: false,
+    });
+  };
   return Tag;
 };

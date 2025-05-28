@@ -5,26 +5,23 @@ const {
 } = require("../../utilities/controllerUtilities");
 const logger = require("../../utilities/logger");
 const responses = require("../../config/serverResponses");
+const tasksService = require("./tasksService");
 
 async function getTaskDownload(req, res) {
   const language = req.language;
-  const filename = req.query.filename;
-  const bucketName = process.env.BUCKET_NAME;
-  const tasksPath = process.env.BUCKET_TASKS_PATH;
-
-  console.log(filename, tasksPath, bucketName);
-
+  const taskId = req.id;
   try {
-    const filePath = `${tasksPath}/${filename}`;
-    const url = await s3Manager.getSignedUrlFromS3(bucketName, filePath);
-    console.log(url);
+    const task = (await tasksService.findTaskById({ id: taskId })).dataValues;
+    const url = await tasksService.getSignedUrlFromS3({
+      filepath: task.filepath,
+    });
     return handleSuccessResponse(res, 200, { presignedUrl: url });
   } catch (error) {
     logger.error(error);
     return handleErrorResponse(
       res,
-      500,
-      responses.commonMessages.serverError[language]
+      responses.statusCodes.internalServerError,
+      responses.errors.serverError[language]
     );
   }
 }

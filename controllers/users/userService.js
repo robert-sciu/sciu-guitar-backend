@@ -426,7 +426,7 @@ class UserService {
   destructurePasswordResetData(data) {
     return destructureData({
       data,
-      keys: ["email", "password", "reset_password_token"],
+      keys: ["email", "password", "resetPasswordToken"],
     });
   }
 }

@@ -17,4 +17,20 @@ module.exports = {
       },
     },
   },
+  test: {
+    postgres: {
+      options: {
+        port: process.env.DB_PORT,
+        username: process.env.TEST_DB_USERNAME,
+        password: process.env.TEST_DB_PASSWORD,
+        database: process.env.TEST_DB_DATABASE,
+        dialect: "postgres",
+        logging: (msg) => {
+          if (msg.includes("ERROR")) {
+            logger.error(msg);
+          }
+        },
+      },
+    },
+  },
 };

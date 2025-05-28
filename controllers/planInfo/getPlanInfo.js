@@ -9,7 +9,6 @@ const responses = require("../../config/serverResponses");
 async function getPlanInfo(req, res) {
   const language = req.language;
   const userId = req.user.id;
-
   try {
     const planInfo = await planInfoService.getPlanInfo({ userId });
 

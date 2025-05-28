@@ -8,6 +8,7 @@ async function updatePricing(req, res) {
   const language = req.language;
 
   const currentPricing = pricingService.getPricingData();
+
   const updateData = pricingService.destructureUpdatePricingData({
     data: req.body,
   });

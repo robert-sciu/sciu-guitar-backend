@@ -1,5 +1,7 @@
 const express = require("express");
 const pricingController = require("../controllers/pricing");
+const { validate } = require("../middleware/validator");
+const { updatePricingValidator } = require("../validators/pricingValidator");
 
 const pricingRouterOpen = () => {
   const router = express.Router();
@@ -9,7 +11,9 @@ const pricingRouterOpen = () => {
 
 const pricingRouterAdmin = () => {
   const router = express.Router();
-  router.route("/").patch(pricingController.updatePricing);
+  router
+    .route("/")
+    .patch(updatePricingValidator, validate, pricingController.updatePricing);
   return router;
 };
 

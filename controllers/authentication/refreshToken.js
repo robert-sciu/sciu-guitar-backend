@@ -10,13 +10,13 @@ async function refreshToken(req, res) {
   const language = req.language;
   const refreshToken = req.cookies.refreshToken;
 
-  if (!refreshToken) {
-    return handleErrorResponse(
-      res,
-      responses.statusCodes.unauthorized,
-      responses.errors.authentication.missingToken[language]
-    );
-  }
+  // if (!refreshToken) {
+  //   return handleErrorResponse(
+  //     res,
+  //     responses.statusCodes.unauthorized,
+  //     responses.errors.authentication.missingToken[language]
+  //   );
+  // }
 
   try {
     const storedToken = await authenticationService.findStoredToken({

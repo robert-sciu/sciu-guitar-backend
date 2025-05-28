@@ -91,7 +91,6 @@ async function checkForOverlapingReservations({ reservationData }) {
       },
     },
   });
-
   if (overlappingReservations.length > 0) {
     overlappingReservations.map((reservation) => {
       const errorMsg = {

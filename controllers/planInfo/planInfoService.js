@@ -1,8 +1,7 @@
 const {
-  findRecordByFk,
-
   findAllRecords,
   updateRecord,
+  findRecordByValue,
 } = require("../../utilities/sequelizeUtilities");
 
 const { PlanInfo } = require("../../models").sequelize.models;
@@ -11,7 +10,7 @@ const { destructureData } = require("../../utilities/serviceUtilities");
 
 class PlanInfoService {
   async getPlanInfo({ userId }) {
-    return await findRecordByFk({ model: PlanInfo, id: userId });
+    return await findRecordByValue({ model: PlanInfo, value: { userId } });
   }
 
   async getAllPlanInfos() {

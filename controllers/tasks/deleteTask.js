@@ -1,34 +1,47 @@
-const Task = require("../../models").sequelize.models.Task;
-const { sequelize } = require("../../models");
+const responses = require("../../config/serverResponses");
 const {
   handleErrorResponse,
   handleSuccessResponse,
 } = require("../../utilities/controllerUtilities");
 const logger = require("../../utilities/logger");
-// const s3Manager = require("../../utilities/s3Manager");
+const commonService = require("../services/commonService");
+const tasksService = require("./tasksService");
 
-async function deleteTask(req, res, next) {
-  const bucketName = process.env.BUCKET_NAME;
-  const tasksPath = process.env.BUCKET_TASKS_PATH;
-  const id = req.query.id;
-  const transaction = await sequelize.transaction();
+async function deleteTask(req, res) {
+  const language = req.language;
+  const id = req.id;
+
+  const transaction = await commonService.getTransaction();
   try {
-    const task = await findRecordByPk(Task, id);
+    // need to find task to get filepath from it
+    const task = (await tasksService.findTaskById({ id })).dataValues;
+
     if (!task) {
-      await transaction.rollback();
-      return handleErrorResponse(res, 404, "Task not found");
+      return handleErrorResponse(
+        res,
+        responses.statusCodes.notFound,
+        responses.errors.task.taskNotFound[language]
+      );
     }
-    await deleteRecord(Task, id);
-    if (task.filename) {
-      const filePath = `${tasksPath}/${task.filename}`;
-      await s3Manager.deleteFileFromS3(bucketName, filePath);
-    }
+
+    await tasksService.deleteTask({ id, transaction });
+    await tasksService.deleteFileFromS3({ filepath: task.filepath });
+
     await transaction.commit();
-    return handleSuccessResponse(res, 200, "Task deleted successfully");
+
+    return handleSuccessResponse(
+      res,
+      responses.statusCodes.noContent,
+      responses.messages.task.taskDeleted[language]
+    );
   } catch (error) {
     await transaction.rollback();
     logger.error(error);
-    return handleErrorResponse(res, 500, "Server error");
+    return handleErrorResponse(
+      res,
+      responses.statusCodes.internalServerError,
+      responses.errors.serverError[language]
+    );
   }
 }
 

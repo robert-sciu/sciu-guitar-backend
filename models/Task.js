@@ -41,6 +41,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: true,
       },
+      filepath: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
       descriptionPl: {
         type: DataTypes.STRING,
         allowNull: true,
@@ -62,23 +66,23 @@ module.exports = (sequelize, DataTypes) => {
     }
   );
 
-  // Task.associate = (models) => {
-  //   Task.belongsToMany(models.User, {
-  //     through: models.UserTask,
-  //     foreignKey: "taskId",
-  //     otherKey: "userId",
-  //   });
-  //   Task.belongsTo(models.UserTask, {
-  //     foreignKey: "id",
-  //     targetKey: "taskId",
-  //     as: "userTask",
-  //   });
-  //   Task.belongsToMany(models.Tag, {
-  //     through: models.TaskTag,
-  //     foreignKey: "taskId",
-  //     otherKey: "tagId",
-  //   });
-  // };
+  Task.associate = (models) => {
+    Task.belongsToMany(models.User, {
+      through: models.UserTask,
+      foreignKey: "taskId",
+      otherKey: "userId",
+    });
+    Task.belongsTo(models.UserTask, {
+      foreignKey: "id",
+      targetKey: "taskId",
+      // as: "userTask",
+    });
+    Task.belongsToMany(models.Tag, {
+      through: models.TaskTag,
+      foreignKey: "taskId",
+      otherKey: "tagId",
+    });
+  };
 
   return Task;
 };

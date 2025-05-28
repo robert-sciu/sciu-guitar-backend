@@ -8,11 +8,11 @@ const { LessonReservation, PlanInfo } =
 const config = require("../../config/config")[process.env.NODE_ENV];
 const {
   findRecordByPk,
-  findRecordByFk,
   updateRecord,
   deleteRecord,
   createRecord,
   findAllRecords,
+  findRecordByValue,
 } = require("../../utilities/sequelizeUtilities");
 const {
   checkIfReservationDateIsAllowed,
@@ -96,7 +96,7 @@ class LessonReservationsService {
   }
 
   async getUserPlanInfo({ userId }) {
-    return await findRecordByFk({ model: PlanInfo, id: userId });
+    return await findRecordByValue({ model: PlanInfo, id: { userId } });
   }
 
   async updateCancelledReservationsCount({ userId }) {

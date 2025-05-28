@@ -9,8 +9,7 @@ const logger = require("../../utilities/logger");
 
 async function getTags(req, res) {
   try {
-    await tagService.fetchAllTags();
-    const tags = tagService.allTags;
+    const tags = await tagService.getAllTags();
     return handleSuccessResponse(res, responses.statusCodes.ok, tags);
   } catch (error) {
     logger.error(error);

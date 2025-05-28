@@ -11,6 +11,7 @@ async function login(req, res) {
   const loginData = authenticationService.destrucureLoginCredentials({
     data: req.body,
   });
+
   try {
     // Check if user exists and is verified and if not return error message //////////////
 

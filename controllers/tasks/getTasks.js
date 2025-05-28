@@ -12,7 +12,8 @@ async function getTasks(req, res) {
   const user = req.user;
 
   try {
-    const tasks = await tasksService.getTasks({ user });
+    const tasks = await tasksService.getTasks({ user, language });
+
     return handleSuccessResponse(res, responses.statusCodes.ok, tasks);
   } catch (error) {
     logger.error(error);
